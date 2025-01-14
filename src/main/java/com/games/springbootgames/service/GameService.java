@@ -1,6 +1,9 @@
 package com.games.springbootgames.service;
 
+import com.games.springbootgames.mapper.GameDtoMapper;
+import com.games.springbootgames.model.dto.GameDTO;
 import com.games.springbootgames.model.dto.GamePatchDTO;
+import com.games.springbootgames.model.dto.response.GameResponseDTO;
 import com.games.springbootgames.model.entity.Game;
 import com.games.springbootgames.repository.GameRepository;
 import lombok.AccessLevel;
@@ -19,19 +22,24 @@ import java.util.Set;
 @Service
 public class GameService {
 
+    final GameDtoMapper gameDtoMapper;
     final GameRepository gameRepository;
 
-    public String createGame(Game game) {
-        var createdGame =  gameRepository.save(game);
+    public String createGame(GameDTO gameDTO) {
+        var game = gameDtoMapper.mapToGameEntity(gameDTO);
+        var createdGame = gameRepository.save(game);
         return createdGame.getId();
     }
 
-    public List<String> createGames(List<Game> games) {
+    public List<String> createGames(List<GameDTO> gameDTOs) {
+        var games = gameDtoMapper.mapToGameEntities(gameDTOs);
         var createdGames =  gameRepository.saveAll(games);
         return createdGames.stream().map(Game::getId).toList();
     }
 
-    public String updateGame(String id, Game game) {
+    public String updateGame(String id, GameDTO gameDTO) {
+        var game = gameDtoMapper.mapToGameEntity(gameDTO);
+
         if (gameRepository.existsById(id)) {
             game.setId(id);
             gameRepository.save(game);
@@ -72,12 +80,15 @@ public class GameService {
         return updatedPatchGame.getId();
     }
 
-    public List<Game> getAllGames() {
-        return gameRepository.findAll();
+    public List<GameResponseDTO> getAllGames() {
+        List<Game> games = gameRepository.findAll();
+        return gameDtoMapper.mapToGameResponseDTOs(games);
     }
 
-    public Optional<Game> getGameById(String id) {
-        return gameRepository.findById(id);
+    public GameResponseDTO getGameById(String id) {
+        Optional<Game> gameOptional = gameRepository.findById(id);
+        return gameOptional.map(gameDtoMapper::mapToGameResponseDTO).orElse(null);
+
     }
 
     public void deleteGames(Set<String> ids) {

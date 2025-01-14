@@ -1,8 +1,10 @@
 package com.games.springbootgames.controller;
 
+import com.games.springbootgames.mapper.GameDtoMapper;
 import com.games.springbootgames.model.dto.GamePatchDTO;
-import com.games.springbootgames.model.entity.Game;
-import com.games.springbootgames.repository.GameRepository;
+import com.games.springbootgames.model.dto.request.GameCreateRequestDTO;
+import com.games.springbootgames.model.dto.request.GameUpdateRequestDTO;
+import com.games.springbootgames.model.dto.response.GameResponseDTO;
 import com.games.springbootgames.service.GameService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -16,7 +18,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 import static com.games.springbootgames.util.constant.ConstantAPI.ENDPOINT_GAMES;
@@ -28,8 +29,8 @@ import static com.games.springbootgames.util.constant.ConstantAPI.ENDPOINT_GAMES
 @RequestMapping(ENDPOINT_GAMES)
 public class GameController {
 
+    final GameDtoMapper gameDtoMapper;
     final GameService gameService;
-    final GameRepository gameRepository;
 
     @Operation(
             summary = "Create a new game",
@@ -41,9 +42,10 @@ public class GameController {
     })
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping
-    public String createGame(@RequestBody Game game) {
-        log.debug("create game: {}", game);
-        var gameId = gameService.createGame(game);
+    public String createGame(@RequestBody GameCreateRequestDTO gameCreateRequestDTO) {
+        log.debug("create game: {}", gameCreateRequestDTO);
+        var gameDTO = gameDtoMapper.mapToGameDTO(gameCreateRequestDTO);
+        var gameId = gameService.createGame(gameDTO);
         log.debug("game created successfully. game id: {}", gameId);
         return gameId;
     }
@@ -58,9 +60,10 @@ public class GameController {
     })
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping("/batch")
-    public List<String> createGames(@RequestBody List<Game> games) {
-        log.debug("create games: {}", games);
-        var gameIds = gameService.createGames(games);
+    public List<String> createGames(@RequestBody List<GameCreateRequestDTO> gamesGameCreateRequestDTOs) {
+        log.debug("create games: {}", gamesGameCreateRequestDTOs);
+        var gameDTOs = gameDtoMapper.mapToGameDTOs(gamesGameCreateRequestDTOs);
+        var gameIds = gameService.createGames(gameDTOs);
         log.debug("games created successfully. game ids: {}", gameIds);
         return gameIds;
     }
@@ -74,8 +77,9 @@ public class GameController {
             @ApiResponse(responseCode = "404", description = "Game not found")
     })
     @PutMapping("/{id}")
-    public ResponseEntity<String> updateGame(@PathVariable String id, @RequestBody Game game) {
-        String gameId = gameService.updateGame(id, game);
+    public ResponseEntity<String> updateGame(@PathVariable String id, @RequestBody GameUpdateRequestDTO gameUpdateRequestDTO) {
+        var gameDTO = gameDtoMapper.mapToGameDTO(gameUpdateRequestDTO);
+        String gameId = gameService.updateGame(id, gameDTO);
         if (gameId == null)
             return ResponseEntity.notFound().build();
 
@@ -110,7 +114,7 @@ public class GameController {
             @ApiResponse(responseCode = "400", description = "Invalid input")
     })
     @GetMapping
-    public List<Game> getAllGames() {
+    public List<GameResponseDTO> getAllGames() {
         return gameService.getAllGames();
     }
 
@@ -128,9 +132,11 @@ public class GameController {
 //        return optionalGame.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
 //    }
     @GetMapping("/{id}")
-    public ResponseEntity<Game> getGameById(@PathVariable String id) {
-        Optional<Game> optionalGame = gameService.getGameById(id);
-        return optionalGame.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+    public ResponseEntity<GameResponseDTO> getGameById(@PathVariable String id) {
+        var gameResponseDTO = gameService.getGameById(id);
+        return gameResponseDTO != null ?
+                ResponseEntity.ok(gameResponseDTO) :
+                ResponseEntity.notFound().build();
     }
 
     @Operation(
